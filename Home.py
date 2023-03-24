@@ -1,9 +1,6 @@
 import streamlit as st
-import matplotlib.pyplot as plt
 import pandas as pd
-import torch
 from transformers import AutoTokenizer, AutoModel
-from sklearn.metrics.pairwise import cosine_similarity
 from recsys import *
 
 st.set_page_config(
@@ -14,7 +11,7 @@ st.set_page_config(
 model = AutoModel.from_pretrained('rubert_tiny2')
 tokenizer = AutoTokenizer.from_pretrained('tokenizer_rubert_tiny2')
 vec_df = pd.read_csv('vec_df.csv', index_col=0)
-df = pd.read_csv('database.csv', index_col=0)
+df = pd.read_csv('data_collection/data/database.csv')
 
 st.title("Умный поиск книг")
 st.write('### Поиск книг на сайте [Библио-глобус](https://www.biblio-globus.ru/category?cid=182&pagenumber=1) по описанию сюжета или содержания')
@@ -31,7 +28,7 @@ prompt = st.text_input(label='Введите запрос', value='', placeholde
 ret = st.button("Найти",
                            ("\n"))
 
-top_n = 3
+top_n = 5
 
 if ret:
     output, ind = recommend(prompt, top_n, model, tokenizer, vec_df, df)
@@ -44,3 +41,6 @@ if ret:
             st.subheader(f'''**{output['title'][ind[i]]}**''')
             st.caption(output['author'][ind[i]])
             st.markdown(output['annotation'][ind[i]])
+    # top_n = st.text_input(label='Количество рекомендаций', value='', placeholder='3')
+else:
+    st.image('https://www.grunge.com/img/gallery/the-messed-up-truth-about-poisonous-renaissance-books/l-intro-1613588668.jpg')
