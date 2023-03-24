@@ -21,14 +21,12 @@ st.write('''Наш поисковик не ищет по ключевым сло
          ''')
 
 prompt = st.text_input(label='Введите запрос', value='', placeholder='Пользовательский запрос')
-
+top_n = st.text_input(label='Количество рекомендаций', value='', placeholder='3')
 
 #st.markdown(output)
 
 ret = st.button("Найти",
                            ("\n"))
-
-top_n = 5
 
 if ret:
     output, ind = recommend(prompt, top_n, model, tokenizer, vec_df, df)
