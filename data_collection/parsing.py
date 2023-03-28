@@ -38,9 +38,9 @@ def get_data_from_url(html:str, is_max_page:bool = False):
         data_list.append(link.get('href')[9:])
     return data_list
 
-def update_data(html:str, book_url:str, genre_idx:int, cid:str):
+def collect_data(html:str, book_url:str, genre_idx:int, cid:str):
   """
-  Procedure update data in database.csv file by appending new data.
+  Function collect data from html file.
 
   input:
     html:str - html code of the page
@@ -78,6 +78,15 @@ def update_data(html:str, book_url:str, genre_idx:int, cid:str):
     'subgenre': [subgenre],
     'dttm_updated': [pd.Timestamp.now()]
   }
+  return pd.DataFrame(new_line)
+
+def update_data(data:list):
+  """
+  Procedure update data in database.csv file by appending new data.
+
+  input:
+    data:list - list of 20 books' information
+  """
 
   # Check file existence, if no - create
   file_path = Path(DATA_PATH)
@@ -89,7 +98,8 @@ def update_data(html:str, book_url:str, genre_idx:int, cid:str):
   
   # Update data
   df = pd.read_csv(file_path)
-  df = pd.concat([df, pd.DataFrame(new_line)], ignore_index=True)
+  temp_df = pd.concat(data, ignore_index=True)
+  df = pd.concat([df, temp_df], ignore_index=True)
   df = df.drop_duplicates().reset_index(drop=True)
   df.to_csv(file_path, index=False)
 
@@ -140,7 +150,7 @@ async def goto_url(url:str, page_, tries:int=1, is_book:bool=False):
   
   if tries == 4:
     logging.info(f"Connection Error. Can't properly connect 3 times. to {url=}")
-    pass
+    return
   try:
     await page_.goto(url)
     selector = '[class="rounded img-fluid"]' if is_book else '[class="page-link"]'
@@ -149,7 +159,7 @@ async def goto_url(url:str, page_, tries:int=1, is_book:bool=False):
   except:
     tries+=1
     logging.info(f'Try to reconnect to {url=}')
-    goto_url(page_, url, tries)
+    await goto_url(url, page_, tries, is_book=is_book)
 
 async def main():
   async with async_playwright() as p:
@@ -169,8 +179,8 @@ async def main():
       while page_num < max_pages+1:
         # Go to the catalog page
         url = f'https://www.biblio-globus.ru/category?cid={cid}&pagenumber={str(page_num)}'
-        await goto_url(url, page)
         logging.info(f"Go to {url=}.")
+        await goto_url(url, page)
 
         # Collect books' ids at the page
         html = await page.inner_html('*')
@@ -181,17 +191,24 @@ async def main():
           max_pages = get_data_from_url(html, is_max_page=True)
         
         # Collect data from each book page and store it to database.csv
+        books_data = []
         for book_id in book_id_list:
           book_url = f'https://www.biblio-globus.ru/product/{book_id}'
-          await goto_url(book_url, page, is_book=True)
           logging.info(f"Go to {book_url=}.")
+          await goto_url(book_url, page, is_book=True)
 
           book_html = await page.inner_html('*')
-          update_data(book_html, book_url, genre_idx, cid)
-          update_initial_params(genre_idx, cid, page_num, max_pages)
+          try:
+            books_data.append(collect_data(book_html, book_url, genre_idx, cid))
+          except:
+            continue
           logging.info(f"Data added for {book_id=}.")
         
+        update_data(books_data)
         page_num+=1
+        update_initial_params(genre_idx, cid, page_num, max_pages)
+
+      page_num = max_pages = 1
 
     await browser.close()
 

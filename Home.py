@@ -5,8 +5,8 @@ from recsys import *
 
 st.set_page_config(
     page_title='Умный поиск книг',
-    page_icon= ":book:",
-    layout='wide')
+    page_icon= ":book:"
+    )
 
 model = AutoModel.from_pretrained('rubert_tiny2')
 tokenizer = AutoTokenizer.from_pretrained('tokenizer_rubert_tiny2')
@@ -21,7 +21,7 @@ st.write('''Наш поисковик не ищет по ключевым сло
          ''')
 
 prompt = st.text_input(label='Введите запрос', value='', placeholder='Пользовательский запрос')
-top_n = st.text_input(label='Количество рекомендаций', value='', placeholder='3')
+top_n = st.number_input(label='Количество рекомендаций', value=3)
 
 #st.markdown(output)
 
@@ -39,6 +39,5 @@ if ret:
             st.subheader(f'''**{output['title'][ind[i]]}**''')
             st.caption(output['author'][ind[i]])
             st.markdown(output['annotation'][ind[i]])
-    # top_n = st.text_input(label='Количество рекомендаций', value='', placeholder='3')
 else:
     st.image('https://www.grunge.com/img/gallery/the-messed-up-truth-about-poisonous-renaissance-books/l-intro-1613588668.jpg')
